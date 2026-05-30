@@ -1,0 +1,25 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "حارس الشبكة",
+  "outputfilename": "Haris Shabaka",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "info": {
+    "companyName": "Haris Shabaka",
+    "productName": "Haris Shabaka",
+    "productVersion": "0.0.1",
+    "copyright": "Copyright 2026",
+    "comments": "Built with Wails"
+  },
+  "author": {
+    "name": "Harran Ali",
+    "email": "harran.m@gmail.com"
+  },
+  "nsis": {
+    "displayName": "Haris Shabaka",
+    "license": "MIT",
+    "icon": "build/windows/icon.ico"
+  }
+}
