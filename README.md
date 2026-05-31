@@ -179,7 +179,9 @@ With a combination of **process analysis + network monitoring + 3D world visuali
 
 ## Roadmap (Todo next)
 - Extracts vendor information (e.g. Microsoft, Windows)
-
+- Detect sudden, unexpected spikes in transmission volume
+- Add background process to log activity
+- Add real time alerts
 
 ## 📄 License
 
