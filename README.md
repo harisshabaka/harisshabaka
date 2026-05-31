@@ -20,6 +20,30 @@ This tool is built to:
 
 ---
 
+## 🖼️ Screenshots
+
+### 📡 Real-Time Network Monitoring
+Shows active processes using internet connections in real time.
+![Network Monitoring](./screenshots/network-monitoring.png)
+
+---
+
+### 🌍 Interactive 3D Global Traffic Map
+Visualizes live network traffic on a rotating 3D globe with animated connection arcs.
+![3D Globe Traffic](./screenshots/map.png)
+
+---
+
+### 🧠 Process Intelligence View
+Displays running processes, PIDs, and associated network activity.
+![Process View](./screenshots/table.png)
+
+---
+
+### ⚠️ Security Classification Panel
+Highlights safe, suspicious, and critical network behavior.
+![Security Panel](./screenshots/risky-process.png)
+
 ## 🌐 Key Features
 
 ### 📡 Real-Time Network Monitoring
