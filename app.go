@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed" // Don't forget this import for //go:embed
 	"fmt"
+	"haris_shabaka/backend/notifications" // Import your notification package
 	"haris_shabaka/backend/process"
 	"os/exec"
 	"time"
@@ -25,12 +26,14 @@ var iconData []byte
 type App struct {
 	ctx            context.Context
 	processManager *process.Manager
+	notifManager   *notifications.NotificationManager
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
 	return &App{
 		processManager: process.NewManager(),
+		notifManager:   notifications.NewNotificationManager(),
 	}
 }
 
@@ -103,6 +106,19 @@ func (a *App) startBackgroundProcess() {
 			return
 		case <-ticker.C:
 			fmt.Println("Background task executing logic...")
+			// 🔴 Test Danger Alert
+			// _ = a.notifManager.ShowDanger("تهديد أمني مكتشف!", "تم رصد اتصال خارجي مشبوه.")
+			err := a.notifManager.ShowDanger(
+				"Test Notification",
+				"If you can see this, notifications are working.",
+			)
+
+			fmt.Println("Notification result:", err)
+			// 🟡 Test Warning Alert
+			// _ = a.notifManager.ShowWarning("استهلاك عالي للشبكة", "تجاوزت إحدى العمليات حد البيانات المسموح به.")
+
+			// 🟢 Test Suggestion Alert
+			// _ = a.notifManager.ShowSuggest("تحسين أداء الشبكة", "يمكنك توفير استهلاك الطاقة عبر تعطيل العمليات الخاملة.")
 
 			// Fixed to use the explicit wailsRuntime
 			wailsRuntime.EventsEmit(a.ctx, "background-status", "Task ticked at "+time.Now().Format("15:04:05"))
