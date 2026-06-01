@@ -10,7 +10,7 @@ import (
 
 	goRuntime "runtime" // Alias native Go runtime to prevent conflicts
 
-	"github.com/getlantern/systray"
+	"fyne.io/systray"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime" // Import Wails runtime
 )
 
@@ -112,36 +112,63 @@ func (a *App) startBackgroundProcess() {
 
 // --- System Tray Logic ---
 func (a *App) onTrayReady() {
-	// 2. Set the tray icon using our embedded byte slice variable
 	systray.SetIcon(iconData)
 	systray.SetTitle("حارس الشبكة")
 	systray.SetTooltip("حارس الشبكة - Active Monitoring")
 
-	// Create menu items
-	mOption1 := systray.AddMenuItem("Option 1", "Do something from Option 1")
-	mOption2 := systray.AddMenuItem("Option 2", "Do something from Option 2")
+	// Create menu items (These show natively on Right-Click automatically)
+	mOption1 := systray.AddMenuItem("إظهار التطبيق", "إظهار نافذة التطبيق")
 	systray.AddSeparator()
-	mExit := systray.AddMenuItem("Exit App", "Quit the entire application")
+	mExit := systray.AddMenuItem("خروج", "خروج من التطبيق")
 
-	// Monitor menu clicks in a loop
+	// Tracking thresholds for double click behavior
+	var lastClick time.Time
+	doubleClickThreshold := 300 * time.Millisecond
+
+	// --- THE ACTUAL FIXED CALLBACK: SetOnTapped ---
+	systray.SetOnTapped(func() {
+		now := time.Now()
+		if now.Sub(lastClick) < doubleClickThreshold {
+			fmt.Println("Double click detected! Showing window...")
+			wailsRuntime.WindowShow(a.ctx)
+			lastClick = time.Time{} // Reset
+		} else {
+			lastClick = now
+			fmt.Println("Single click ignored.")
+		}
+	})
+
+	// Monitor menu clicks in a loop (Right clicks natively drive this menu)
 	for {
 		select {
 		case <-mOption1.ClickedCh:
-			fmt.Println("Option 1 clicked!")
-			// Fixed to use the explicit wailsRuntime
+			fmt.Println("Show app clicked from context menu!")
 			wailsRuntime.WindowShow(a.ctx)
 
-		case <-mOption2.ClickedCh:
-			fmt.Println("Option 2 clicked!")
-
 		case <-mExit.ClickedCh:
-			fmt.Println("Exit clicked. Shutting down...")
-			systray.Quit()
-			return
+			selection, err := wailsRuntime.MessageDialog(a.ctx, wailsRuntime.MessageDialogOptions{
+				Type:          wailsRuntime.QuestionDialog,
+				Title:         "تأكيد الخروج | Confirm Exit",
+				Message:       "هل أنت متأكد من أنك تريد إغلاق حارس الشبكة تماماً؟\n\nAre you sure you want to completely close the app?",
+				DefaultButton: "No",
+				Buttons:       []string{"Yes", "No"},
+			})
+
+			if err != nil {
+				fmt.Printf("خطأ في مربع الحوار: %v\n", err)
+				systray.Quit()
+				return
+			}
+
+			if selection == "Yes" {
+				fmt.Println("Exit confirmed. Shutting down...")
+				systray.Quit()
+				return
+			}
+			fmt.Println("Exit canceled by user.")
 		}
 	}
 }
-
 func (a *App) onTrayExit() {
 	if a.ctx != nil {
 		// Fixed to use the explicit wailsRuntime

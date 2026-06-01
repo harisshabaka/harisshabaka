@@ -18,7 +18,7 @@ import {
   Menu
 } from "lucide-react";
 
-import { EventsOn, Quit, WindowMaximise, WindowMinimise, WindowUnmaximise } from "../../wailsjs/runtime/runtime";
+import { EventsOn, Quit, WindowHide, WindowMaximise, WindowMinimise, WindowUnmaximise } from "../../wailsjs/runtime/runtime";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -115,7 +115,7 @@ export function AppLayout({ children, activeRoute, onNavigate }: AppLayoutProps)
           </button>
 
           <button
-            onClick={() => Quit()}
+            onClick={() => WindowHide()}
             className="w-8 h-6 flex items-center justify-center bg-transparent transition-colors duration-150 hover:bg-[#ef4444] hover:text-white active:scale-95 text-[#e1e2ec] cursor-pointer"
             title="إغلاق"
           >
