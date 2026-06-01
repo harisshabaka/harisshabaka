@@ -4,9 +4,11 @@ import (
 	"context"
 	_ "embed" // Don't forget this import for //go:embed
 	"fmt"
+	"haris_shabaka/backend/logger"
 	"haris_shabaka/backend/notifications" // Import your notification package
 	"haris_shabaka/backend/process"
 	"os/exec"
+	"sync"
 	"time"
 
 	goRuntime "runtime" // Alias native Go runtime to prevent conflicts
@@ -27,13 +29,27 @@ type App struct {
 	ctx            context.Context
 	processManager *process.Manager
 	notifManager   *notifications.NotificationManager
+	dbLogger       *logger.Logger
+
+	// State Detection Engine Properties
+	knownPids map[int]bool
+	pidMu     sync.Mutex
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
+	// Initialize SQLite right into your project root directory space
+	dbLog, err := logger.NewLogger("logs.db")
+	if err != nil {
+		// Log crash fallback if permissions block local creation
+		fmt.Printf("[حارس الشبكة] Critical DB Init Error: %v\n", err)
+	}
+
 	return &App{
 		processManager: process.NewManager(),
 		notifManager:   notifications.NewNotificationManager(),
+		dbLogger:       dbLog,
+		knownPids:      make(map[int]bool), // Initialize empty map tracking active connections
 	}
 }
 
@@ -106,19 +122,14 @@ func (a *App) startBackgroundProcess() {
 			return
 		case <-ticker.C:
 			fmt.Println("Background task executing logic...")
-			// 🔴 Test Danger Alert
-			// _ = a.notifManager.ShowDanger("تهديد أمني مكتشف!", "تم رصد اتصال خارجي مشبوه.")
-			err := a.notifManager.ShowDanger(
-				"Test Notification",
-				"If you can see this, notifications are working.",
-			)
+			// Execute differential processing scan
+			newApps := a.detectNewNetworkApps()
 
-			fmt.Println("Notification result:", err)
-			// 🟡 Test Warning Alert
-			// _ = a.notifManager.ShowWarning("استهلاك عالي للشبكة", "تجاوزت إحدى العمليات حد البيانات المسموح به.")
-
-			// 🟢 Test Suggestion Alert
-			// _ = a.notifManager.ShowSuggest("تحسين أداء الشبكة", "يمكنك توفير استهلاك الطاقة عبر تعطيل العمليات الخاملة.")
+			// Ready for dispatch to logger
+			if len(newApps) > 0 {
+				fmt.Printf("[حارس الشبكة] Detected %d new network-attached processes.\n", len(newApps))
+				// TODO: logger.LogConnections(newApps)
+			}
 
 			// Fixed to use the explicit wailsRuntime
 			wailsRuntime.EventsEmit(a.ctx, "background-status", "Task ticked at "+time.Now().Format("15:04:05"))
@@ -186,8 +197,123 @@ func (a *App) onTrayReady() {
 	}
 }
 func (a *App) onTrayExit() {
+	// close db
+	if a.dbLogger != nil {
+		_ = a.dbLogger.Close()
+	}
+
 	if a.ctx != nil {
 		// Fixed to use the explicit wailsRuntime
 		wailsRuntime.Quit(a.ctx)
 	}
+}
+
+// detectNewNetworkApps compares state and logs entries to database pipelines
+func (a *App) detectNewNetworkApps() []process.ProcessRow {
+	currentRows, err := a.processManager.FetchActiveProcesses()
+	if err != nil {
+		return nil
+	}
+
+	a.pidMu.Lock()
+	defer a.pidMu.Unlock()
+
+	// Initial configuration baseline setup
+	if len(a.knownPids) == 0 {
+		for _, row := range currentRows {
+			a.knownPids[row.PID] = true
+		}
+		return nil
+	}
+
+	var newlyDetected []process.ProcessRow
+	activeSnapshotPids := make(map[int]bool)
+
+	// Build a fast lookup cache from our live process network descriptors
+	// This lets us match an IP to an Arabic Country name using your JSON dictionaries
+	ipToCountryMap := make(map[string]string)
+	geoContext, err := a.processManager.GetCountryConnections("GeoLite2-Country.mmdb")
+	if err == nil && geoContext != nil {
+		for _, countryConn := range geoContext.Connections {
+			for _, remoteIP := range countryConn.IPs {
+				ipToCountryMap[remoteIP] = countryConn.CountryName
+			}
+		}
+	}
+
+	for _, row := range currentRows {
+		activeSnapshotPids[row.PID] = true
+
+		if !a.knownPids[row.PID] {
+			newlyDetected = append(newlyDetected, row)
+			a.knownPids[row.PID] = true
+
+			// Resolve localized country string using our extracted lookup map
+			country := "Local/Unknown"
+			if resolvedName, found := ipToCountryMap[row.RemoteIP]; found && resolvedName != "" {
+				country = resolvedName
+			}
+
+			// 🗄️ Run non-blocking async logging operations
+			if a.dbLogger != nil {
+				go func(r process.ProcessRow, c string) {
+					_ = a.dbLogger.LogProcessActivity(r, c)
+				}(row, country)
+			}
+
+			// System Tray Desktop Notification Routing
+			if !row.IsSigned {
+				_ = a.notifManager.ShowDanger(
+					"تطبيق غير موثوق يتصل بالشبكة!",
+					fmt.Sprintf("التطبيق: %s (PID: %d) لا يملك توقيعاً رقمياً.", row.ProcessName, row.PID),
+				)
+			} else {
+				_ = a.notifManager.ShowSuggest(
+					"تطبيق آمن متصل",
+					fmt.Sprintf("بدأ التطبيق الموقّع %s اتصالاً جديداً.", row.ProcessName),
+				)
+			}
+		}
+	}
+
+	// Purge dead PIDs from tracking map memory state
+	for trackedPid := range a.knownPids {
+		if !activeSnapshotPids[trackedPid] {
+			delete(a.knownPids, trackedPid)
+		}
+	}
+
+	return newlyDetected
+}
+
+// GetHistoricalLogsByPID exposes your single-process PID check function to Wails/Frontend layers
+func (a *App) GetHistoricalLogsByPID(pid int) []map[string]interface{} {
+	if a.dbLogger == nil {
+		return []map[string]interface{}{}
+	}
+	data, err := a.dbLogger.GetLogByPID(pid)
+	if err != nil {
+		fmt.Printf("Error fetching process records: %v\n", err)
+		return []map[string]interface{}{}
+	}
+	return data
+}
+
+// GetNetworkLogs fetches a paginated, filtered layout of historical socket interactions
+func (a *App) GetNetworkLogs(page, pageSize int, searchFilter string) logger.PaginatedLogsResponse {
+	if a.dbLogger == nil {
+		return logger.PaginatedLogsResponse{
+			Logs: []map[string]interface{}{},
+		}
+	}
+
+	res, err := a.dbLogger.GetPaginatedLogs(page, pageSize, searchFilter)
+	if err != nil {
+		fmt.Printf("[حارس الشبكة] Error fetching historical logs mapping: %v\n", err)
+		return logger.PaginatedLogsResponse{
+			Logs: []map[string]interface{}{},
+		}
+	}
+
+	return res
 }

@@ -1,3 +1,26 @@
+export namespace logger {
+	
+	export class PaginatedLogsResponse {
+	    logs: any[];
+	    totalRows: number;
+	    totalPages: number;
+	    currentPage: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PaginatedLogsResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.logs = source["logs"];
+	        this.totalRows = source["totalRows"];
+	        this.totalPages = source["totalPages"];
+	        this.currentPage = source["currentPage"];
+	    }
+	}
+
+}
+
 export namespace process {
 	
 	export class ConnectionInfo {

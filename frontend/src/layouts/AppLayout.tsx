@@ -68,6 +68,7 @@ export function AppLayout({ children, activeRoute, onNavigate }: AppLayoutProps)
       items: [
         { id: "live-connections", label: "الاتصالات الحية", icon: Activity },
         { id: "locations", label: "الموقع الجغرافي للاتصالات", icon: Clock },
+        { id: "network-logs", label: "سجلات الشبكة", icon: FileSignature },
       ]
     }
   ];

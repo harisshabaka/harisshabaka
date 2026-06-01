@@ -14,6 +14,7 @@ import SecurityRules from "@/pages/SecurityRules";
 import Appearance from "@/pages/Appearance";
 import About from "@/pages/About";
 import Locations from "@/pages/Locations";
+import NetworkLogs from "@/pages/NetworkLogs";
 
 export default function App() {
   const [activeRoute, setActiveRoute] = useState<string>("live-connections");
@@ -42,6 +43,8 @@ export default function App() {
         return <About />;
       case "locations":
         return <Locations />;
+      case "network-logs":
+        return <NetworkLogs />;
       default:
         return <LiveConnections />;
     }

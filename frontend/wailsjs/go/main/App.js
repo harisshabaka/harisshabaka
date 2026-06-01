@@ -6,6 +6,14 @@ export function GetCountryConnections() {
   return window['go']['main']['App']['GetCountryConnections']();
 }
 
+export function GetHistoricalLogsByPID(arg1) {
+  return window['go']['main']['App']['GetHistoricalLogsByPID'](arg1);
+}
+
+export function GetNetworkLogs(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetNetworkLogs'](arg1, arg2, arg3);
+}
+
 export function GetSystemProcesses() {
   return window['go']['main']['App']['GetSystemProcesses']();
 }
