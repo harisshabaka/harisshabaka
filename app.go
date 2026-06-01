@@ -38,8 +38,10 @@ type App struct {
 
 // NewApp creates a new App application struct
 func NewApp() *App {
+	appName := "Haris Shabaka" // Ensure this matches your NSIS product identifier folder
+	dbPath := logger.GetDatabasePath(appName)
 	// Initialize SQLite right into your project root directory space
-	dbLog, err := logger.NewLogger("logs.db")
+	dbLog, err := logger.NewLogger(dbPath)
 	if err != nil {
 		// Log crash fallback if permissions block local creation
 		fmt.Printf("[حارس الشبكة] Critical DB Init Error: %v\n", err)

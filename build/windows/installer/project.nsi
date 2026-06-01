@@ -97,6 +97,17 @@ Section
     
     # add ip to country name database
     File "..\..\..\GeoLite2-Country.mmdb"
+
+    # This creates "$INSTDIR\assets" containing all subdirectories/images automatically
+    SetOutPath "$INSTDIR\assets"
+    File /r "..\..\..\assets\*.*"
+    
+    # Reset tracking output scope to the active user's shared app data folder
+    SetOutPath "$APPDATA\${INFO_PRODUCTNAME}"
+    File "..\..\..\logs.db"
+    
+    # Reset out path back to instdir for subsequent standard shortcuts
+    SetOutPath $INSTDIR
     
     # =========================================================================
 
@@ -122,6 +133,13 @@ Section "uninstall"
     
     # remove the ip to country database
     Delete "$INSTDIR\GeoLite2-Country.mmdb"
+
+    # Clean out the compiled asset images directory tree
+    RMDir /r "$INSTDIR\assets"
+    
+    # Purge the dynamic log storage architecture from user data folders
+    Delete "$APPDATA\${INFO_PRODUCTNAME}\logs.db"
+    RMDir "$APPDATA\${INFO_PRODUCTNAME}"
     
     # =========================================================================
 

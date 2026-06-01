@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"haris_shabaka/backend/process"
 	"math"
+	"os"
 	"path/filepath"
+	"strings"
 
 	_ "github.com/glebarez/go-sqlite" // Pure Go SQLite driver
 )
@@ -211,4 +213,38 @@ func (l *Logger) GetPaginatedLogs(page, pageSize int, searchFilter string) (Pagi
 	}
 
 	return response, nil
+}
+
+// GetDatabasePath dynamically detects the running context environment
+func GetDatabasePath(appName string) string {
+	exePath, err := os.Executable()
+	if err != nil {
+		// Safe baseline fallback if OS tracking fails
+		return "logs_dev.db"
+	}
+
+	// Clean and lowercase the path string to avoid casing discrepancies
+	normalizedPath := strings.ToLower(filepath.Clean(exePath))
+
+	// If running via 'wails dev', the binary runs out of your project's build directory target
+	if strings.Contains(normalizedPath, filepath.Join("build", "bin")) || strings.Contains(normalizedPath, "wailsjs") {
+		// Development Mode: Use local relative storage
+		return "logs_dev.db"
+	}
+
+	// Production Deployed Mode: Route directly to secure Windows AppData profiles
+	appDataDir := os.Getenv("APPDATA")
+	if appDataDir == "" {
+		// Safe fallback layout if environment keys are missing
+		appDataDir = os.Getenv("USERPROFILE")
+	}
+
+	targetDir := filepath.Join(appDataDir, appName)
+
+	// Create the directory path natively if it doesn't exist yet
+	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
+		_ = os.MkdirAll(targetDir, 0755)
+	}
+
+	return filepath.Join(targetDir, "logs.db")
 }
